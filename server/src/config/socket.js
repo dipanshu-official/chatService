@@ -6,7 +6,7 @@ let io; // Declare io at the module level
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Replace with specific origin in production
+      origin: 'http://localhost:5173', // Replace with specific origin in production
       methods: ['GET', 'POST']
     }
   });

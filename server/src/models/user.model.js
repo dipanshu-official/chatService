@@ -28,6 +28,14 @@ const userSchema = new mongoose.Schema({
     type: String, // URL to avatar image
     default: ''
   },
+  lastMessage: {
+    type: String,
+    default: "",
+  },
+    online: {
+    type: Boolean,
+    default: false,
+  },
 },{timestamps:true});
 
 const User = mongoose.model('User', userSchema);
