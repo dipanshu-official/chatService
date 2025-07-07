@@ -1,46 +1,35 @@
+// src/config/socket.js
 import { Server } from "socket.io";
+import Message from "../models/message.model.js";
 
-let io; // Global Socket.IO instance
-
-const initSocket = (server) => {
-  io = new Server(server, {
+export const initSocket = (server) => {
+  const io = new Server(server , {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: "http://localhost:5173", 
       methods: ["GET", "POST"],
     },
   });
+
   io.on("connection", (socket) => {
-    console.log(`[${new Date().toISOString()}] ⚡ Connected: ${socket.id}`);
+    console.log(`🟢 Socket connected: ${socket.id}`);
 
-    // Event: disconnect
-    socket.on("disconnect", (reason) => {
-      console.log(
-        `[${new Date().toISOString()}] ❌ Disconnected: ${
-          socket.id
-        } | Reason: ${reason}`
-      );
+    // Handle incoming message
+    socket.on("sendMessage", async (data) => {
+      const { text, sender, time, avatar } = data;
+      try {
+        const newMessage = new Message({ text, sender, time, avatar });
+        await newMessage.save();
+
+        // Broadcast to all connected clients
+        io.emit("receiveMessage", newMessage);
+        console.log(newMessage)
+      } catch (error) {
+        console.error("❌ Failed to save message:", error);
+      }
     });
 
-    // Optional: log when reconnecting
-    socket.on("reconnect", (attemptNumber) => {
-      console.log(
-        `[${new Date().toISOString()}] 🔄 Reconnected: ${
-          socket.id
-        } | Attempt: ${attemptNumber}`
-      );
-    });
-
-    // Optional: log disconnecting manually
-    socket.on("manual-disconnect", () => {
-      socket.disconnect();
-      console.log(`👋 ${socket.id} manually disconnected`);
+    socket.on("disconnect", () => {
+      console.log(`🔴 Socket disconnected: ${socket.id}`);
     });
   });
 };
-
-const getIO = () => {
-  if (!io) throw new Error("Socket.io not initialized!");
-  return io;
-};
-
-export { initSocket, getIO };

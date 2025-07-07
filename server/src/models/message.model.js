@@ -22,5 +22,5 @@ const MessageSchema = new mongoose.Schema({
   timestamps: true // adds createdAt and updatedAt fields
 });
 
-const Message = mongoose.model("ChatMessage", MessageSchema);
-export default ChatMessage;
+const Message = mongoose.model("Message", MessageSchema);
+export default Message;

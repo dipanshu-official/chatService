@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import io from "socket.io-client";
 import {
   Send,
   Search,
@@ -17,7 +18,6 @@ import { getAllUserDataSelector } from "../store/globalSelector";
 import { getAllUser } from "../store/globalAction";
 
 const ChatUI = () => {
-  // Initialize selectedUser to 0, or a valid index if allUser is pre-populated
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [message, setMessage] = useState("");
   const [darkMode, setDarkMode] = useState(true);
@@ -81,16 +81,56 @@ const ChatUI = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const allUser = useSelector(getAllUserDataSelector);
-  // console.log("userData=>", allUser);
+
+  // Initialize socket here, outside of useEffect, but memoize if necessary for production
+  // For simplicity, we'll keep it here, but be aware of re-renders creating new sockets
+  const socket = useRef(null); // Use useRef to persist socket instance
+
+  useEffect(() => {
+    // Initialize socket connection only once
+    if (!socket.current) {
+      socket.current = io("http://localhost:5000");
+    }
+
+    socket.current.on("receiveMessage", (msg) => {
+      // Assuming msg contains information to identify the recipient/sender
+      // For this example, let's assume 'msg.receiverId' or similar
+      // Or if it's a direct message, we need to know which chat it belongs to.
+      // For simplicity, if 'msg.sender' matches 'them' and it's for the currently selected user, add it.
+      // In a real app, you'd likely have a 'chatId' or 'conversationId'
+      setMessages((prevMessages) => {
+        const newMessages = { ...prevMessages };
+        // This logic needs to be more robust in a real app to identify the correct conversation
+        // For demonstration, we'll assume the received message is for the currently selected user
+        // Or you might need a way to map the message to a specific conversation ID.
+        // For example, if msg contained a `conversationId`:
+        // if (newMessages[msg.conversationId]) {
+        //   newMessages[msg.conversationId] = [...newMessages[msg.conversationId], msg];
+        // }
+        // For now, let's just add it to the current selected user's messages if it's from 'them'
+        if (msg.sender === "them" && newMessages[selectedUserIndex]) {
+             newMessages[selectedUserIndex] = [...(newMessages[selectedUserIndex] || []), msg];
+        }
+        return newMessages;
+      });
+    });
+
+    return () => {
+      if (socket.current) {
+        socket.current.off("receiveMessage");
+        // Don't disconnect here if you want to maintain connection across component unmounts
+        // Or disconnect only when the user logs out from the entire app.
+        // socket.current.disconnect();
+      }
+    };
+  }, [selectedUserIndex]); // Re-run if selectedUserIndex changes to update receiveMessage logic if needed
 
   useEffect(() => {
     dispatch(getAllUser());
-  }, [dispatch]); // Added dispatch to dependency array for best practice
+  }, [dispatch]);
 
   const messagesEndRef = useRef(null);
 
-  // Derive currentUser based on selectedUserIndex
-  // Ensure allUser is available before trying to access elements
   const currentUser =
     allUser.length > selectedUserIndex ? allUser[selectedUserIndex] : null;
 
@@ -106,7 +146,6 @@ const ChatUI = () => {
 
   const handleSendMessage = () => {
     if (message.trim() && currentUser) {
-      // Ensure a user is selected before sending
       const newMessage = {
         id: Date.now(),
         text: message,
@@ -117,10 +156,22 @@ const ChatUI = () => {
         }),
       };
 
+      // Update local state first
       setMessages((prev) => ({
         ...prev,
         [selectedUserIndex]: [...(prev[selectedUserIndex] || []), newMessage],
       }));
+
+      // Emit message to socket server
+      if (socket.current) {
+        socket.current.emit("sendMessage", {
+          text: message,
+          sender: "me",
+          receiverId: currentUser._id, // You'll need a way to identify the recipient on the server
+          time: newMessage.time,
+        });
+      }
+
       setMessage("");
     }
   };
@@ -470,7 +521,7 @@ const ChatUI = () => {
               </button>
             </div>
             <button
-              onClick={handleSendMessage}
+              onClick={handleSendMessage} // Changed to handleSendMessage
               className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               <Send size={20} />
