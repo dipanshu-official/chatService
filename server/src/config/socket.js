@@ -1,36 +1,46 @@
 import { Server } from "socket.io";
 
-let io; // Declare io at the module level
+let io; // Global Socket.IO instance
 
-// Function to initialize Socket.IO with the HTTP server
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: 'http://localhost:5173', // Replace with specific origin in production
-      methods: ['GET', 'POST']
-    }
+      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      methods: ["GET", "POST"],
+    },
   });
-
   io.on("connection", (socket) => {
-    console.log(`⚡ User connected: ${socket.id}`);
+    console.log(`[${new Date().toISOString()}] ⚡ Connected: ${socket.id}`);
 
-    // Handle events here
-    // Example:
-    // socket.on("message", (data) => {
-    //   console.log(data);
-    // });
+    // Event: disconnect
+    socket.on("disconnect", (reason) => {
+      console.log(
+        `[${new Date().toISOString()}] ❌ Disconnected: ${
+          socket.id
+        } | Reason: ${reason}`
+      );
+    });
 
-    socket.on("disconnect", () => {
-      console.log(`❌ User disconnected: ${socket.id}`);
+    // Optional: log when reconnecting
+    socket.on("reconnect", (attemptNumber) => {
+      console.log(
+        `[${new Date().toISOString()}] 🔄 Reconnected: ${
+          socket.id
+        } | Attempt: ${attemptNumber}`
+      );
+    });
+
+    // Optional: log disconnecting manually
+    socket.on("manual-disconnect", () => {
+      socket.disconnect();
+      console.log(`👋 ${socket.id} manually disconnected`);
     });
   });
 };
 
-// Getter for the initialized io instance
 const getIO = () => {
   if (!io) throw new Error("Socket.io not initialized!");
   return io;
 };
 
-// Export functions
 export { initSocket, getIO };

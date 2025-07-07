@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector ,useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Send,
   Search,
@@ -9,21 +9,21 @@ import {
   Video,
   Smile,
   Paperclip,
-  Users,
   Settings,
   Moon,
   Sun,
 } from "lucide-react";
-import {  getAllUserDataSelector } from "../store/globalSelector";
+import { getAllUserDataSelector } from "../store/globalSelector";
 import { getAllUser } from "../store/globalAction";
 
 const ChatUI = () => {
-  const [selectedUser, setSelectedUser] = useState(0);
+  // Initialize selectedUser to 0, or a valid index if allUser is pre-populated
+  const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [message, setMessage] = useState("");
   const [darkMode, setDarkMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const [messages, setMessages] = useState({
     0: [
       {
@@ -78,72 +78,23 @@ const ChatUI = () => {
       },
     ],
   });
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const allUser = useSelector(getAllUserDataSelector)
-  console.log("userData=>",allUser)
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const allUser = useSelector(getAllUserDataSelector);
+  // console.log("userData=>", allUser);
 
   useEffect(() => {
-    dispatch(getAllUser())
-  },[])
+    dispatch(getAllUser());
+  }, [dispatch]); // Added dispatch to dependency array for best practice
 
   const messagesEndRef = useRef(null);
 
-  const users = [
-    {
-      id: 0,
-      name: "Sarah Johnson",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "Can't wait to see it! 🎨",
-      time: "10:35 AM",
-      online: true,
-      unread: 0,
-    },
-    {
-      id: 1,
-      name: "Mike Chen",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "Perfect! I'll be there",
-      time: "9:16 AM",
-      online: true,
-      unread: 0,
-    },
-    {
-      id: 2,
-      name: "Emma Davis",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "Thank you so much! 💕",
-      time: "8:30 AM",
-      online: false,
-      unread: 2,
-    },
-    {
-      id: 3,
-      name: "Alex Rivera",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "See you tomorrow!",
-      time: "Yesterday",
-      online: false,
-      unread: 0,
-    },
-    {
-      id: 4,
-      name: "Lisa Park",
-      avatar:
-        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "Thanks for the help!",
-      time: "Yesterday",
-      online: true,
-      unread: 1,
-    },
-  ];
+  // Derive currentUser based on selectedUserIndex
+  // Ensure allUser is available before trying to access elements
+  const currentUser =
+    allUser.length > selectedUserIndex ? allUser[selectedUserIndex] : null;
 
-  const currentUser = allUser[selectedUser];
-  const currentMessages = messages[selectedUser] || [];
+  const currentMessages = messages[selectedUserIndex] || [];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -154,7 +105,8 @@ const ChatUI = () => {
   }, [currentMessages]);
 
   const handleSendMessage = () => {
-    if (message.trim()) {
+    if (message.trim() && currentUser) {
+      // Ensure a user is selected before sending
       const newMessage = {
         id: Date.now(),
         text: message,
@@ -167,7 +119,7 @@ const ChatUI = () => {
 
       setMessages((prev) => ({
         ...prev,
-        [selectedUser]: [...(prev[selectedUser] || []), newMessage],
+        [selectedUserIndex]: [...(prev[selectedUserIndex] || []), newMessage],
       }));
       setMessage("");
     }
@@ -257,12 +209,12 @@ const ChatUI = () => {
 
         {/* User List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredUsers.map((user) => (
+          {filteredUsers.map((user, index) => (
             <div
-              key={user.id}
-              onClick={() => setSelectedUser(user.id)}
+              key={user._id || index} // Use _id if available, fallback to index
+              onClick={() => setSelectedUserIndex(index)} // Store the index
               className={`p-4 cursor-pointer transition-all duration-200 ${
-                selectedUser === user.id
+                selectedUserIndex === index
                   ? darkMode
                     ? "bg-blue-600 bg-opacity-20"
                     : "bg-blue-50 border-r-2 border-blue-500"
@@ -273,12 +225,11 @@ const ChatUI = () => {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <img
-                    src=""
-                    alt="D"
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  {allUser.online && (
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white font-semibold text-2xl flex items-center justify-center">
+                    {user?.avatar}
+                  </div>
+
+                  {user.online && ( // Corrected: check user.online
                     <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                   )}
                 </div>
@@ -334,34 +285,43 @@ const ChatUI = () => {
               : "bg-white border-gray-200"
           } border-b flex items-center justify-between`}
         >
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <img
-                src=""
-                alt="R"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              {allUser.online && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-              )}
+          {currentUser ? ( // Only render if currentUser exists
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-blue-500 text-white font-semibold text-xl flex items-center justify-center">
+                  {currentUser.avatar}
+                </div>
+
+                {currentUser.online && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                )}
+              </div>
+              <div>
+                <h2
+                  className={`font-semibold ${
+                    darkMode ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {currentUser.name}
+                </h2>
+                <p
+                  className={`text-sm ${
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  {currentUser.online ? "Active now" : "Last seen recently"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2
-                className={`font-semibold ${
-                  darkMode ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {/* {currentUser.name} */}
-              </h2>
-              <p
-                className={`text-sm ${
-                  darkMode ? "text-gray-400" : "text-gray-500"
-                }`}
-              >
-                {/* {currentUser.online ? "Active now" : "Last seen recently"} */}
-              </p>
+          ) : (
+            <div
+              className={`font-semibold ${
+                darkMode ? "text-white" : "text-gray-900"
+              }`}
+            >
+              Select a chat to start messaging
             </div>
-          </div>
+          )}
           <div className="flex items-center space-x-2">
             <button
               className={`p-2 rounded-lg ${
@@ -403,10 +363,12 @@ const ChatUI = () => {
                     <li className="px-4 py-2 hover:bg-gray-200 cursor-pointer">
                       Profile
                     </li>
-                    <li  onClick={() => {
-                      navigate("/")
-                    }}
-                    className="px-4 py-2 hover:bg-gray-200 cursor-pointer">
+                    <li
+                      onClick={() => {
+                        navigate("/");
+                      }}
+                      className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
+                    >
                       Logout
                     </li>
                   </ul>
@@ -420,7 +382,7 @@ const ChatUI = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {currentMessages.map((msg) => (
             <div
-              key={msg.id}
+              key={msg.id} // Use msg.id as key for messages
               className={`flex ${
                 msg.sender === "me" ? "justify-end" : "justify-start"
               }`}
@@ -430,13 +392,14 @@ const ChatUI = () => {
                   msg.sender === "me" ? "flex-row-reverse space-x-reverse" : ""
                 }`}
               >
-                {msg.sender === "them" && (
-                  <img
-                    src={msg.avatar}
-                    alt="Avatar"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                )}
+                {msg.sender === "them" &&
+                  msg.avatar && ( // Render avatar for "them" if available
+                    <img
+                      src={msg.avatar}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  )}
                 <div
                   className={`px-4 py-2 rounded-2xl ${
                     msg.sender === "me"

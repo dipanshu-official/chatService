@@ -1,21 +1,32 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../models/user.model.js'; // Assuming you have a User model
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/user.model.js"; // Assuming you have a User model
+
+
+
+const generateInitials = (fullName) => {
+  if (!fullName) return "";
+  const names = fullName.trim().split(" ");
+  return names
+    .map((n) => n[0].toUpperCase())
+    .slice(0, 2)
+    .join("");
+};
 
 // Get all users
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find().select("-password");
     res.status(200).json({
       success: true,
       count: users.length,
-      data: users
+      data: users,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -23,24 +34,24 @@ export const getAllUsers = async (req, res) => {
 // Get user by ID
 export const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
-    
+    const user = await User.findById(req.params.id).select("-password");
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: user
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -48,14 +59,14 @@ export const getUserById = async (req, res) => {
 // Create new user
 export const createUser = async (req, res) => {
   try {
-    console.log(req.body , "helooo")
+    console.log(req.body, "helooo");
     const { name, email, password } = req.body;
 
     // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password'
+        message: "Please provide name, email, and password",
       });
     }
 
@@ -64,7 +75,7 @@ export const createUser = async (req, res) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid email address'
+        message: "Please provide a valid email address",
       });
     }
 
@@ -72,7 +83,7 @@ export const createUser = async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long'
+        message: "Password must be at least 6 characters long",
       });
     }
 
@@ -81,7 +92,7 @@ export const createUser = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists with this email'
+        message: "User already exists with this email",
       });
     }
 
@@ -94,6 +105,7 @@ export const createUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      avatar:generateInitials(name)
     });
 
     await user.save();
@@ -104,14 +116,14 @@ export const createUser = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      data: userResponse
+      message: "User created successfully",
+      data: userResponse,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -127,7 +139,7 @@ export const updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -137,7 +149,7 @@ export const updateUser = async (req, res) => {
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide a valid email address'
+          message: "Please provide a valid email address",
         });
       }
 
@@ -147,7 +159,7 @@ export const updateUser = async (req, res) => {
         if (existingUser) {
           return res.status(400).json({
             success: false,
-            message: 'Email already in use'
+            message: "Email already in use",
           });
         }
       }
@@ -165,14 +177,14 @@ export const updateUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'User updated successfully',
-      data: userResponse
+      message: "User updated successfully",
+      data: userResponse,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -181,11 +193,11 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -193,16 +205,17 @@ export const deleteUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'User deleted successfully'
+      message: "User deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
+
 
 // User login
 export const loginUser = async (req, res) => {
@@ -217,7 +230,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Find user and include password for comparison
+    // Find user and include password
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -226,7 +239,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Check password
+    // Password check
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -235,14 +248,16 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    
+
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, email: user.email,  },
+      { userId: user._id, email: user.email },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
-    // Remove password from response
+    // Prepare safe user response
     const userResponse = user.toObject();
     delete userResponse.password;
 
@@ -252,6 +267,7 @@ export const loginUser = async (req, res) => {
       token,
       data: userResponse
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -271,32 +287,35 @@ export const changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide current and new password'
+        message: "Please provide current and new password",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long'
+        message: "New password must be at least 6 characters long",
       });
     }
 
     // Find user
-    const user = await User.findById(userId).select('+password');
+    const user = await User.findById(userId).select("+password");
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: "Current password is incorrect",
       });
     }
 
@@ -310,13 +329,13 @@ export const changePassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password changed successfully'
+      message: "Password changed successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -324,25 +343,24 @@ export const changePassword = async (req, res) => {
 // Get user profile (for authenticated user)
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
-    
+    const user = await User.findById(req.user.userId).select("-password");
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: user
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
-

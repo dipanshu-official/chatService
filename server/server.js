@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 const server = createServer(app);
 
 // Initialize socket.io
-initSocket(server);
+ initSocket(server);
 
 //databse connected
 connectDB()

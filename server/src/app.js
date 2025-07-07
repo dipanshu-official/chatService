@@ -10,7 +10,6 @@ const app = express();
 app.use(
   cors({
     origin: "http://localhost:5173", // <-- React app origin
-    credentials: true, // <-- If using cookies or auth headers
   })
 );
 app.use(express.json());
